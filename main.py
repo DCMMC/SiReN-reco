@@ -38,16 +38,15 @@ def main(args):
     print("\nTraining on {}...\n".format(device))
     model.train()
     training_dataset=bipartite_dataset(train,neg_dist,args.offset,data_class.num_u,data_class.num_v,args.K);
-    batch_size = len(train['rating']) // 800
+    batch_size = len(train['rating']) // 80
     print('batch_size:', batch_size)
+    best = None
     
     for EPOCH in range(1,args.epoch+1):
-        if EPOCH%20-1==0:training_dataset.negs_gen_EP(20)
-            
-        
+        if EPOCH % 5 - 1 == 0:
+            training_dataset.negs_gen_EP(5)
         LOSS=0
         training_dataset.edge_4 = training_dataset.edge_4_tot[:,:,EPOCH%5-1]
-        
         ds = DataLoader(training_dataset,batch_size=batch_size,shuffle=True)
         q=0
         pbar = tqdm(desc = 'Version : {} Epoch {}/{}'.format(args.version,EPOCH,args.epoch),total=len(ds),position=0)
@@ -80,12 +79,26 @@ def main(args):
             eval_.normalized_DCG()
             print("\n***************************************************************************************")
             print(" /* Recommendation Accuracy */")
+            print('Test:')
             print('N :: %s'%(eval_.N))
             print('Precision at :: %s'%(eval_.N),eval_.p['total'][eval_.N-1])
             print('Recall at [10, 15, 20] :: ',eval_.r['total'][eval_.N-1])
             print('nDCG at [10, 15, 20] :: ',eval_.nDCG['total'][eval_.N-1])
+
             print("***************************************************************************************")
+            if best is None or best.nDCG['total'][best.N-1][-1] < eval_.nDCG['total'][eval_.N-1][-1]:
+                best = eval_
             model.train()
+        if EPOCH % 20 == 0:
+            print("\n***************************************************************************************")
+            print(" /* Recommendation Accuracy */")
+            print('Best Test:')
+            print('N :: %s'%(best.N))
+            print('Precision at :: %s'%(best.N),best.p['total'][best.N-1])
+            print('Recall at [10, 15, 20] :: ',best.r['total'][best.N-1])
+            print('nDCG at [10, 15, 20] :: ',best.nDCG['total'][best.N-1])
+
+            print("***************************************************************************************")
 
 
 
@@ -114,7 +127,7 @@ if __name__=='__main__':
                         )
     parser.add_argument('--lr',
                         type = float,
-                        default = 1e-3,
+                        default = 5e-3,
                         help = "Learning rate"
                         )
     parser.add_argument('--offset',
@@ -124,7 +137,7 @@ if __name__=='__main__':
                         )
     parser.add_argument('--K',
                         type = int,
-                        default = 40,
+                        default = 50,
                         help = "The number of negative samples"
                         )
     parser.add_argument('--num_layers',

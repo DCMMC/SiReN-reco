@@ -182,6 +182,8 @@ class SBGNN(nn.Module):
         return emb
 
     def forward(self,u,v,w,n):
+        margin = 0.4
+        neg_weight = 1
         emb = self.aggregate()
         u = emb[u]
         v = emb[v]
@@ -189,8 +191,22 @@ class SBGNN(nn.Module):
         positivebatch = torch.mul(u , v)
         negativebatch = torch.mul(u.view(len(u),1,self.embed_dim),n)
         sBPR_loss =  F.logsigmoid((((-1/2*torch.sign(w)+3/2)).view(len(u),1) * (positivebatch.sum(dim=1).view(len(u),1))) - negativebatch.sum(dim=2)).sum(dim=1) # weight
+        loss = -torch.sum(sBPR_loss)
+        # CCL
+        # pos_loss = torch.relu(1 - positivebatch.sum(dim=1))
+        # neg_loss = torch.relu(F.sigmoid(negativebatch.sum(dim=2)) - margin)
+        # loss = (pos_loss + neg_loss.mean(dim=-1) * neg_weight).mean()
+        # loss = F.binary_cross_entropy_with_logits(
+        #     positivebatch.sum(dim=1).flatten(), torch.sign(w),
+        #     reduction="sum"
+        # )
+        # neg = negativebatch.sum(dim=2).flatten()
+        # loss += F.binary_cross_entropy_with_logits(
+        #     neg, torch.zeros_like(neg)
+        # )
+        #
         reg_loss = u.norm(dim=1).pow(2).sum() + v.norm(dim=1).pow(2).sum() + n.norm(dim=2).pow(2).sum()
-        return -torch.sum(sBPR_loss) + self.reg * reg_loss
+        return loss + self.reg * reg_loss
 
 
 # ============= load data

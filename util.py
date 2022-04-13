@@ -12,6 +12,7 @@ class bipartite_dataset(Dataset):
         self.edge_1 = torch.tensor(train['userId'].values-1)
         self.edge_2 = torch.tensor(train['movieId'].values-1) +num_u
         self.edge_3 = torch.tensor(train['rating'].values) - offset
+        self.edge_4 = None
         self.neg_dist = neg_dist
         self.K = K;
         self.num_u = num_u
@@ -21,6 +22,8 @@ class bipartite_dataset(Dataset):
 
     def negs_gen_EP(self,epoch):
         print('negative sampling for next epochs...'); st=time.time()
+        del self.edge_4
+        torch.cuda.empty_cache()
         self.edge_4_tot = torch.empty((len(self.edge_1),self.K,epoch),dtype=torch.long)
         prog = tqdm(desc='negative sampling for next epochs...',total=len(set(self.train['userId'].values)),position=0)
         for j in set(self.train['userId'].values):
@@ -32,7 +35,6 @@ class bipartite_dataset(Dataset):
             self.edge_4_tot[self.edge_1==j-1]=temp.view(int(len(temp)/self.K/epoch),self.K,epoch)
             prog.update(1)
         prog.close()
-        self.edge_4_tot = torch.tensor(self.edge_4_tot).long()
         print('comlete ! %s'%(time.time()-st))
     def __len__(self):
         return len(self.edge_1)
@@ -68,5 +70,4 @@ def gen_top_k(data_class, r_hat, K=300):
 
     _, reco = torch.topk(r_hat,K);
     reco = reco.numpy()
-    
     return reco
