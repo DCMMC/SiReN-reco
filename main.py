@@ -20,9 +20,14 @@ def main(args):
     print('data loading...');st=time.time()
     train,test = data_class.data_load();
     train = train.astype({'userId':'int64', 'movieId':'int64'})
-    test_user = torch.tensor(test['userId'] - 1).to(device)
-    test_item = torch.tensor(test['movieId'] - 1).to(device)
-    test_rating = np.maximum(0, np.sign(test['rating'] - 3.5))
+    # see 22-GraphFM: Graph Factorization Machines for Feature Interaction Modeling
+    print('before remove rating 3, train: {}, test: {}'.format(len(train['rating']), len(test['rating'])))
+    train.drop(train.loc[train['rating'] == 3].index, inplace=True)
+    test.drop(test.loc[test['rating'] == 3].index, inplace=True)
+    print('after remove rating 3, train: {}, test: {}'.format(len(train['rating']), len(test['rating'])))
+    test_user = torch.tensor(test['userId'].to_numpy() - 1).to(device)
+    test_item = torch.tensor(test['movieId'].to_numpy() - 1).to(device)
+    test_rating = np.maximum(0, np.sign(test['rating'].to_numpy() - 3.5))
     data_class.train = train; data_class.test = test
     print('loading complete! time :: %s'%(time.time()-st))
     print('generate negative candidates...'); st=time.time()
@@ -107,7 +112,7 @@ if __name__=='__main__':
                         )
     parser.add_argument('--lr',
                         type = float,
-                        default = 5e-3,
+                        default = 1e-3,
                         help = "Learning rate"
                         )
     parser.add_argument('--offset',
@@ -122,17 +127,17 @@ if __name__=='__main__':
                         )
     parser.add_argument('--num_layers',
                         type = int,
-                        default = 2,
+                        default = 3,
                         help = "The number of layers of a GNN model for the graph with positive edges"
                         )
     parser.add_argument('--MLP_layers',
                         type = int,
-                        default = 2,
+                        default = 3,
                         help = "The number of layers of MLP for the graph with negative edges"
                         )
     parser.add_argument('--epoch',
                         type = int,
-                        default = 400,
+                        default = 100,
                         help = "The number of epochs"
                         )
     parser.add_argument('--reg',
