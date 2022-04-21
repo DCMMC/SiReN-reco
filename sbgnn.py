@@ -172,20 +172,20 @@ class SBGNN(nn.Module):
                 dropout=dropout, emb_size_a=32, emb_size_b=32, aggregator=aggregator
             ) for _ in range(layer_num)]
         )
-        self.proj_a = nn.Linear(32 * layer_num, 32)
-        self.proj_b = nn.Linear(32 * layer_num, 32)
+        # self.proj_a = nn.Linear(32 * layer_num, 32)
+        # self.proj_b = nn.Linear(32 * layer_num, 32)
 
     def aggregate(self):
         emb_a = self.features_a(torch.arange(self.set_a_num).to(device))
         emb_b = self.features_b(torch.arange(self.set_b_num).to(device))
-        emb_a_list = []
-        emb_b_list = []
+        # emb_a_list = []
+        # emb_b_list = []
         for m in self.layers:
             emb_a, emb_b = m(emb_a, emb_b)
-            emb_a_list.append(emb_a)
-            emb_b_list.append(emb_b)
-        emb_a = self.proj_a(torch.concat(emb_a_list, dim=1))
-        emb_b = self.proj_b(torch.concat(emb_b_list, dim=1))
+            # emb_a_list.append(emb_a)
+            # emb_b_list.append(emb_b)
+        # emb_a = self.proj_a(torch.concat(emb_a_list, dim=1))
+        # emb_b = self.proj_b(torch.concat(emb_b_list, dim=1))
         emb = torch.concat([emb_a, emb_b], dim=0)
         return emb
 
