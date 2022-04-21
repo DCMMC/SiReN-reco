@@ -1,3 +1,4 @@
+import init
 import time
 import sys
 import torch
@@ -11,6 +12,7 @@ from data_loader import Data_loader
 from siren import SiReN
 from sbgnn import load_edgelists, MeanAggregator, AttentionAggregator, SBGNN
 from sklearn.metrics import roc_auc_score
+from pandas import DataFrame
 import argparse
 
 
@@ -19,12 +21,21 @@ def main(args):
     data_class=Data_loader(args.dataset,args.version)
     print('data loading...');st=time.time()
     train,test = data_class.data_load();
-    train = train.astype({'userId':'int64', 'movieId':'int64'})
     # see 22-GraphFM: Graph Factorization Machines for Feature Interaction Modeling
     print('before remove rating 3, train: {}, test: {}'.format(len(train['rating']), len(test['rating'])))
-    train.drop(train.loc[train['rating'] == 3].index, inplace=True)
-    test.drop(test.loc[test['rating'] == 3].index, inplace=True)
-    print('after remove rating 3, train: {}, test: {}'.format(len(train['rating']), len(test['rating'])))
+    if args.dataset.lower() == 'ml-1m':
+        train.drop(train.loc[train['rating'] == 3].index, inplace=True)
+        test.drop(test.loc[test['rating'] == 3].index, inplace=True)
+        print('after remove rating 3, train: {}, test: {}'.format(len(train['rating']), len(test['rating'])))
+    # stat
+    stat = {}
+    for i in range(len(train['rating'])):
+        stat[train['userId'].iat[i]] = stat.get(train['userId'].iat[i], 0) + 1
+    test_user = set(test['userId'])
+    coverage = sum([1 if u in stat else 0 for u in test_user]) / len(test_user)
+    print(DataFrame({'#item per user': stat.values()}).describe())
+    print('coverage: {}%'.format(coverage * 100))
+    train = train.astype({'userId':'int64', 'movieId':'int64'})
     test_user = torch.tensor(test['userId'].to_numpy() - 1).to(device)
     test_item = torch.tensor(test['movieId'].to_numpy() - 1).to(device)
     test_rating = np.maximum(0, np.sign(test['rating'].to_numpy() - 3.5))
@@ -59,7 +70,8 @@ def main(args):
         training_dataset.edge_4 = training_dataset.edge_4_tot[:,:,EPOCH%20-1]
         ds = DataLoader(training_dataset,batch_size=batch_size,shuffle=True)
         q=0
-        pbar = tqdm(desc = 'Version : {} Epoch {}/{}'.format(args.version,EPOCH,args.epoch),total=len(ds),position=0)
+        pbar = tqdm(desc = 'Version : {} Epoch {}/{}'.format(args.version,EPOCH,args.epoch),
+                    total=len(ds),position=0, disable=True)
         
         for u,v,w,negs in ds:   
             u, v, w, negs = map(lambda x: x.to(device), [u, v, w, negs])
@@ -147,6 +159,8 @@ if __name__=='__main__':
                         )
     parser.add_argument('--agg', type=str, default='AttentionAggregator',
                         choices=['AttentionAggregator', 'MeanAggregator'], help='Aggregator')
+    parser.add_argument('--data_input', type=str)
+    parser.add_argument('--data_output', type=str)
     parser.add_argument('--dropout', type=float, default=0.5, help='Dropout')
     args = parser.parse_args()
     main(args)
