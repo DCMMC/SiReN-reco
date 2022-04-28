@@ -186,7 +186,7 @@ class SBGNN(nn.Module):
             # emb_b_list.append(emb_b)
         # emb_a = self.proj_a(torch.concat(emb_a_list, dim=1))
         # emb_b = self.proj_b(torch.concat(emb_b_list, dim=1))
-        emb = torch.concat([emb_a, emb_b], dim=0)
+        emb = torch.cat([emb_a, emb_b], dim=0)
         return emb
 
     def forward(self,u,v,w,n):

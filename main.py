@@ -64,10 +64,10 @@ def main(args):
     best_auc = 0.
     
     for EPOCH in range(1,args.epoch+1):
-        if EPOCH % 20 - 1 == 0:
-            training_dataset.negs_gen_EP(20)
+        if EPOCH % 5 - 1 == 0:
+            training_dataset.negs_gen_EP(5)
         LOSS=0
-        training_dataset.edge_4 = training_dataset.edge_4_tot[:,:,EPOCH%20-1]
+        training_dataset.edge_4 = training_dataset.edge_4_tot[:,:,EPOCH%5-1]
         ds = DataLoader(training_dataset,batch_size=batch_size,shuffle=True)
         q=0
         pbar = tqdm(desc = 'Version : {} Epoch {}/{}'.format(args.version,EPOCH,args.epoch),
