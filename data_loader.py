@@ -18,6 +18,11 @@ class Data_loader():
             self.path_for_train='./amazon-book/train_amazon%s.dat'%(version)
             self.path_for_test='./amazon-book/test_amazon%s.dat'%(version)
             self.num_u=35736; self.num_v=38121;
+        elif dataset == 'amazon-electro':
+            self.path_for_train = './amazon-electro/train_amazon1.dat'
+            self.path_for_test = './amazon-electro/test_amazon1.dat'
+            self.num_u = 192403
+            self.num_v = 63001
 
         elif dataset=='yelp':
             self.path_for_whole='./yelp/YELP_encoded.csv'
@@ -40,7 +45,9 @@ class Data_loader():
             self.whole_=pd.read_csv(self.path_for_whole,index_col=0).sample(frac=1,replace=False);
             self.train_set=pd.read_csv(self.path_for_train,index_col=0)
             self.test_set=pd.read_csv(self.path_for_test,index_col=0)
-            
+        elif self.dataset == 'amazon-electro':
+            self.train_set = pd.read_csv(self.path_for_train,index_col=0)
+            self.test_set = pd.read_csv(self.path_for_test,index_col=0)
 
         elif self.dataset=='yelp':
             self.whole_=pd.read_csv(self.path_for_whole,index_col=0).sample(frac=1,replace=False);
