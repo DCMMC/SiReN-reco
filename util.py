@@ -25,7 +25,8 @@ class bipartite_dataset(Dataset):
         del self.edge_4
         torch.cuda.empty_cache()
         self.edge_4_tot = torch.empty((len(self.edge_1),self.K,epoch),dtype=torch.long)
-        prog = tqdm(desc='negative sampling for next epochs...',total=len(set(self.train['userId'].values)),position=0)
+        prog = tqdm(desc='negative sampling for next epochs...',total=len(set(self.train['userId'].values)),
+                    position=0, disable=True)
         for j in set(self.train['userId'].values):
             pos=self.train[self.train['userId']==j]['movieId'].values-1
             # (wtxiao) 所有负例

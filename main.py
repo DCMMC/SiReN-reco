@@ -11,7 +11,7 @@ from util import  bipartite_dataset, deg_dist,gen_top_k
 from data_loader import Data_loader
 from siren import SiReN
 from sbgnn import load_edgelists, MeanAggregator, AttentionAggregator, SBGNN
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, log_loss
 from pandas import DataFrame
 import argparse
 
@@ -23,10 +23,10 @@ def main(args):
     train,test = data_class.data_load();
     # see 22-GraphFM: Graph Factorization Machines for Feature Interaction Modeling
     print('before remove rating 3, train: {}, test: {}'.format(len(train['rating']), len(test['rating'])))
-    if args.dataset.lower() == 'ml-1m':
-        train.drop(train.loc[train['rating'] == 3].index, inplace=True)
-        test.drop(test.loc[test['rating'] == 3].index, inplace=True)
-        print('after remove rating 3, train: {}, test: {}'.format(len(train['rating']), len(test['rating'])))
+    # if args.dataset.lower() == 'ml-1m':
+    train.drop(train.loc[train['rating'] == 3].index, inplace=True)
+    test.drop(test.loc[test['rating'] == 3].index, inplace=True)
+    print('after remove rating 3, train: {}, test: {}'.format(len(train['rating']), len(test['rating'])))
     # stat
     stat = {}
     for i in range(len(train['rating'])):
@@ -59,15 +59,16 @@ def main(args):
     print("\nTraining on {}...\n".format(device))
     model.train()
     training_dataset=bipartite_dataset(train,neg_dist,args.offset,data_class.num_u,data_class.num_v,args.K);
-    batch_size = len(train['rating']) // 80
+    batch_size = len(train['rating']) // 200
     print('batch_size:', batch_size)
     best_auc = 0.
+    best_logloss = 1.
     
     for EPOCH in range(1,args.epoch+1):
-        if EPOCH % 20 - 1 == 0:
-            training_dataset.negs_gen_EP(20)
+        if EPOCH % 5 - 1 == 0:
+            training_dataset.negs_gen_EP(5)
         LOSS=0
-        training_dataset.edge_4 = training_dataset.edge_4_tot[:,:,EPOCH%20-1]
+        training_dataset.edge_4 = training_dataset.edge_4_tot[:,:,EPOCH%5-1]
         ds = DataLoader(training_dataset,batch_size=batch_size,shuffle=True)
         q=0
         pbar = tqdm(desc = 'Version : {} Epoch {}/{}'.format(args.version,EPOCH,args.epoch),
@@ -93,9 +94,13 @@ def main(args):
             emb_u, emb_v = torch.split(emb,[data_class.num_u,data_class.num_v])
             pred = torch.sigmoid(torch.einsum(
                 'ij,ij->i', (emb_u[test_user], emb_v[test_item]))).cpu().detach()
+            pred = np.clip(pred,1e-6,1-1e-6)
             auc = roc_auc_score(test_rating, pred)
+            logloss = log_loss(test_rating, pred)
             best_auc = max(best_auc, auc)
-            print('Epoch ', EPOCH, 'test auc:', auc, ', best_auc:', best_auc, file=sys.stderr)
+            best_logloss = min(best_logloss, logloss)
+            print('Epoch ', EPOCH, 'test auc:', auc, 'test_logloss:', logloss,
+                  'best_logloss:', best_logloss, 'best_auc:', best_auc, file=sys.stderr)
             model.train()
 
 
